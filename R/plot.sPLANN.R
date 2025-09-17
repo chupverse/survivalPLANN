@@ -60,8 +60,8 @@ plot.sPLANN <- function(x, n.groups=5, pro.time=NULL, newdata=NULL, ...){
   if(hasArg(ylim)==FALSE) {ylim <- c(0,1)} else {ylim <- list(...)$ylim}
   if(hasArg(xlim)==FALSE) {xlim  <- c(0,1)} else {xlim <- list(...)$xlim}
   
-  if(hasArg(ylab)==FALSE) {ylab <- "sPLANN estimations"} else {ylab <- list(...)$ylab}
-  if(hasArg(xlab)==FALSE) {xlab <- "Kaplan-Meier estimations"} else {xlab <- list(...)$xlab}
+  if(hasArg(ylab)==FALSE) {ylab <- "Kaplan-Meier estimations"} else {ylab <- list(...)$ylab}
+  if(hasArg(xlab)==FALSE) {xlab <- "sPLANN estimations"} else {xlab <- list(...)$xlab}
   if(hasArg(main)==FALSE) {main <- ""} else {main <- list(...)$main}
   
   plot(.est, .obs, cex = cex, cex.lab = cex.lab, cex.axis = cex.axis, cex.main = cex.main,
