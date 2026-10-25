@@ -11,13 +11,14 @@ sPLANN <- function(formula, data, pro.time=NULL, inter, size = 32, decay = 0.01,
     if (as.character(class(formula)) != "formula") stop("The first argument must be a formula")
     if (as.character(class(data)) != "data.frame") stop("The second argument must be a data frame")
     if (as.character(class(inter)) != "numeric") stop("The inter argument must be numeric")
-    
+    args <- list(...)
+    if ("weights" %in% names(args) && length(args$weights) != nrow(data)) stop("weights must have one value per row of 'data'")
     ####### data management
     
     timevar <- as.character(formula[[2]][2])
     time <- data[,timevar]
     event <- data[,as.character(formula[[2]][3])]
-    cova <- as.matrix(data[,gsub("\\+", "", attr(terms(formula), "term.labels"))])
+    cova <- as.matrix(data[,gsub("\\+", "", attr(terms(formula), "term.labels")), drop = FALSE])
     for(i in colnames(cova)){ if(!is.numeric(cova[,i])) stop("All covariates must be numeric")  }
     
     d <- cbind(time, event, cova)
@@ -25,20 +26,24 @@ sPLANN <- function(formula, data, pro.time=NULL, inter, size = 32, decay = 0.01,
     
     time <- time[na]
     event <- event[na]
-    if (dim(cova)[2] == 1) {
-      cova <- as.matrix(cova[na, ])  
-    } else {
-      cova <- cova[na, ]  
-    }
+    cova <- cova[na, , drop = FALSE]
     
     data <- data[na,]
     
     #### making of intervals from PLANN
     
-    # if (is.null(pro.time)) {pro.time <- max(time[event==1])} # modif
-    if (is.null(pro.time)) {pro.time <- max(time)} # modif
+    if (is.null(pro.time)) {pro.time <- max(time[event==1])}
     
-    intervals <- unique(c(0, seq(inter, pro.time, by=inter), pro.time)) # modif
+    evname <- as.character(formula[[2]][3])
+    b <- time > pro.time
+    if (any(b)) {
+      event[b] <- 0
+      time[b]  <- pro.time
+      data[b, evname]  <- 0
+      data[b, timevar] <- pro.time
+    }
+    
+    intervals <- unique(c(0, seq(inter, pro.time, by = inter), pro.time))
     
     #in which interval the time t is :  
     data$Intervals = findInterval(time, intervals, left.open = TRUE)
@@ -77,9 +82,10 @@ sPLANN <- function(formula, data, pro.time=NULL, inter, size = 32, decay = 0.01,
                                           collapse = " + "),
                                     "+ Intervals"))
     }
-    args <- list(...)
-    if ("weights" %in% names(args)) {
+
+      if ("weights" %in% names(args)) {
       weights = args$weights
+      weights <- weights[na]
       dup_count <- unname(table(data_dup$id))
       weights <- rep(weights,dup_count)
       args$weights = weights

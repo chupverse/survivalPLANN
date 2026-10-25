@@ -1,6 +1,6 @@
 
-cvPLANN <- function(formula, pro.time=NULL, data, cv=10, inter=365.241/12, size = 8, decay = 0.01,
-                    maxit = 1000, MaxNWts=10000, metric = "ibs", stand = NULL)
+cvPLANN <- function(formula, pro.time=NULL, eval.time = NULL, data, cv=10, inter=365.241/12, size = 32, decay = 0.01,
+                    maxit = 100, MaxNWts=10000, metric = "ibs", stand = NULL)
 {
   
   ####### check errors
@@ -12,9 +12,9 @@ cvPLANN <- function(formula, pro.time=NULL, data, cv=10, inter=365.241/12, size 
   all_terms <- attr(terms(formula), "term.labels")
   group_term <- grep("group\\(", all_terms, value = TRUE)
   CV <- setdiff(all_terms, c(group_term))
-  if(length(CV) == 0){covnames = "1"} else{covnames <- CV}
+
+  cova <- as.matrix(data[, CV, drop = FALSE])
   
-  cova <- as.matrix(data[,CV])
   for(i in colnames(cova)){ if(!is.numeric(cova[,i])) stop("All covariates must be numeric")  }
   
   extract_vars <- function(term) {
@@ -53,7 +53,11 @@ cvPLANN <- function(formula, pro.time=NULL, data, cv=10, inter=365.241/12, size 
   
   data.plann <- data[,c(times, failures, group, CV)]
   
-  if(is.null(pro.time)) {pro.time <- median(data[,times])}
+  if (is.null(pro.time)) {pro.time <- max(data[data[, failures] == 1, times])}
+  t.max <- min(pro.time, max(data[data[, failures] == 1, times]))
+  if(is.null(eval.time)) {eval.time <- median(data[,times])}
+  if (metric %in% c("bs", "bll", "ci", "auc", "ribs", "ribll") && eval.time > t.max)
+    stop("eval.time must be <= min(pro.time, last event time)")  
   
   sample_id <- sample(nrow(data.plann))
   folds <- cut(seq(1,nrow(data.plann)), breaks=cv, labels=FALSE)
@@ -68,6 +72,7 @@ cvPLANN <- function(formula, pro.time=NULL, data, cv=10, inter=365.241/12, size 
   }
   
   .time <- sort(unique(data.plann[,times]))
+  .time <- .time[.time <= t.max]
   
   .grid <-  expand.grid(inter=inter, size=size, decay=decay, maxit=maxit, MaxNWts=MaxNWts)
   
@@ -120,12 +125,9 @@ cvPLANN <- function(formula, pro.time=NULL, data, cv=10, inter=365.241/12, size 
       .f <- formula
     }
     
-    .plann <- sPLANN(.f, data = .data,
+    .plann <- sPLANN(.f, data = .data, pro.time= pro.time,
                      inter = inter, size = size, decay = decay,  maxit = maxit, MaxNWts = MaxNWts)
     
-    .time<-sort(unique(.data[,times]))
-    
-    .newdata <- data.frame(newdata[,c(group, CV)])
     .pred.temp <- predict(.plann, newdata=newdata)
     .pred <- .pred.temp$predictions
     .time.plann <- .pred.temp$times
@@ -135,8 +137,8 @@ cvPLANN <- function(formula, pro.time=NULL, data, cv=10, inter=365.241/12, size 
       .pred.plann <- .pred
       .time.plann <- .time.plann
       
-      idx=findInterval(newtimes, .time.plann)
-      .pred=.pred.plann[,pmax(1,idx)]
+      idx <- findInterval(newtimes, .time.plann, left.open = TRUE)
+      .pred <- .pred.plann[, pmin(idx + 1, ncol(.pred.plann))]
       
       .time <- newtimes
     }
@@ -166,18 +168,18 @@ cvPLANN <- function(formula, pro.time=NULL, data, cv=10, inter=365.241/12, size 
     return(metrics(formula = .predformula, prediction.matrix = 
                     as.matrix(as.data.frame(prediction.matrix)),
                    data=data, prediction.times=prediction.times,
-                   pro.time=pro.time, metric= metric))
+                   pro.time=eval.time, metric= metric))
   }
   
   .measure<-sapply(.FitCV, plann.best.measure, formula = formula , data=data.plann, prediction.times=.time)
   
   .res <- data.frame(inter = .grid[,1], size = .grid[,2], decay=.grid[,3],
                      maxit = .grid[,4], MaxNWts = .grid[,5], measure = .measure)
-  if(metric %in% c("ci",  "ibll", "bll", "auc", "ribll")){
+  if(metric %in% c("ci", "auc")){
     .maxi<-.res[which(.res$measure==max(.res$measure, na.rm=TRUE) & is.na(.res$measure)==FALSE),]
     .maxi<-.maxi[1,]
   }
-  if(metric %in% c("ibs", "bs", "ribs")){
+  if(metric %in% c("ibs", "bs", "ribs", "ibll", "bll","ribll")){
     .maxi<-.res[which(.res$measure==min(.res$measure, na.rm=TRUE) & is.na(.res$measure)==FALSE),]
     .maxi<-.maxi[1,]
     }

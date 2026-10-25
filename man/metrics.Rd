@@ -26,9 +26,8 @@ pro.time=NULL, ROC.precision=seq(.01, .99, by=.01))
   length than the number of columns of \code{prediction.matrix}).}
   \item{metric}{The metric to compute. See details.}
   \item{pro.time}{This optional value of prognostic time represents the maximum delay for which the 
-  capacity of the variable is evaluated. The same unit as the time variable in the formula. Not used
-  for the following metrics: "loglik", "ibs", "bll", and "ibll". Default value is the time at which
-  half of the subjects are still at risk.}
+  capacity of the variable is evaluated. The same unit as the time variable in the formula. 
+  Default value is the time at which half of the subjects are still at risk.}
    \item{ROC.precision}{An optional argument with the percentiles (between 0 and 1) of the
    prognostic variable used for computing each point of the time dependent ROC curve. Only used when
    \code{metric="auc"}. 0 (min) and 1 (max) are not allowed. By default, the precision is 
@@ -37,13 +36,12 @@ pro.time=NULL, ROC.precision=seq(.01, .99, by=.01))
 
 \details{
 The following metrics can be used: "bs" for the Brier score at the prognostic time \code{pro.time}, 
-"ci" for the concordance index at the prognostic time \code{pro.time}, "loglik" for the 
-log-likelihood, "ibs" for the integrated Brier score up to the last observed time of event, "ibll"
-for the integrated binomial log-likelihood up to the last observed time of event, "bll" for the 
-binomial log-likelihood, "ribs" for the restricted integrated Brier score up to the prognostic time 
-\code{pro.time}, "ribll" for the restricted integrated binomial log-likelihood up to the last 
-observed time of event, "bll" for the binomial log-likelihood, "auc" for the area under the
-time-dependent ROC curve up to the prognostic time \code{pro.time}.
+"ci" for the concordance index at the prognostic time \code{pro.time}, "ibs" for the integrated Brier 
+score up to the maximum value of prediction.times, "ibll" for the integrated negative binomial log-likelihood
+up to the maximum value of prediction.times, "bll" for the negative binomial log-likelihood, "ribs" for the restricted 
+integrated Brier score up to the prognostic time \code{pro.time}, 
+"ribll" for the restricted integrated negative binomial log-likelihood up to the prognostic time \code{pro.time},
+"auc" for the area under the time-dependent ROC curve up to the prognostic time \code{pro.time}.
 }
 
 \value{

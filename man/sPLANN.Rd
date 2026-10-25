@@ -16,7 +16,7 @@ sPLANN(formula, data, pro.time=NULL, inter, size = 32, decay = 0.01,
 \arguments{
 \item{formula}{a formula object, with the response on the left of a ~ operator, and the terms on the right. The response must be a survival object as returned by the \code{Surv} function.}
 \item{data}{A data frame in which to look for the variables included in the \code{formula}.}
-\item{pro.time}{A numeric value with the maximum prognostic. If \code{NULL}, the maximum prognostic time is the last time for wich an event is observed.}
+\item{pro.time}{A numeric value with the maximum prognostic. If \code{NULL}, the maximum prognostic time is the last time of event observed.}
 \item{inter}{A numeric value representing the length of the intervals.}
 \item{size}{A numeric value for the number of units in the hidden layer. Default is set to 32}
 \item{decay}{A numeric value for the parameter for weight decay. Default is set to 0.01}

@@ -11,17 +11,15 @@ predict.sPLANN <- function(object, newdata = NULL, newtimes = NULL, ...)
     if(!is.data.frame(newdata)) stop("Argument 'newdata' must be a data frame")
     indic <- gsub("\\+", "", attr(terms(formula), "term.labels") ) %in% names(newdata) 
     if( sum(!indic) > 0 ) stop("Missing predictor in the data frame")
-    covariates <- as.matrix(newdata[, gsub("\\+", "", attr(terms(formula), "term.labels"))])
   }
   
-  if(is.null(newdata))  { newdata <- object$data[,-dim(object$data)[2]]
-  marker <- TRUE }
+  if(is.null(newdata))  { newdata <- object$data[,-dim(object$data)[2]] }
   
   data_dupli <- newdata[, attr(terms(formula), "term.labels"), drop = FALSE ]
   data_dupli$id <- seq_len(nrow(data_dupli))
   data_dupli <- as.data.frame(data_dupli[rep(seq_len(nrow(data_dupli)), each = length(intervals)-1),])
   if(length(attr(terms(formula), "term.labels") ) == 1 && attr(terms(formula), "term.labels") != "1" ){
-    names(data_dupli) <- attr(terms(formula), "term.labels")
+    names(data_dupli)[1] <- attr(terms(formula), "term.labels")    
     
     orig_row_ids <- seq_len(nrow(newdata))  
     replicated_row_ids <- rep(orig_row_ids, each = length(intervals) - 1) 
@@ -36,7 +34,7 @@ predict.sPLANN <- function(object, newdata = NULL, newtimes = NULL, ...)
                               FUN = seq_along)
   
   
-  predictions <- predict(object$fitsurvivalnet, newdata = data_dupli, newtimes = intervals,  type ="raw", ...)
+  predictions <- predict(object$fitsurvivalnet, newdata = data_dupli, type ="raw", ...)
   
   grouped_df <- split(cbind(data_dupli,predictions),
                       rep(1:ceiling(nrow(data_dupli)/(length(intervals)-1)),
@@ -60,7 +58,6 @@ predict.sPLANN <- function(object, newdata = NULL, newtimes = NULL, ...)
   }
   
   if(is.null(newtimes))  { 
-    
     predictions <- unname(cbind(rep(1, dim(predictions)[1]), predictions))
     colnames(predictions) = c("0",ints_names)
     newtimes <- intervals
@@ -68,11 +65,7 @@ predict.sPLANN <- function(object, newdata = NULL, newtimes = NULL, ...)
   }else{ 
     if(!is.vector(newtimes))stop("newtimes must be a vector")
     if(any(max(time, pro.time)<newtimes))warning("One or more values of 'newtimes' are  greater than the prognostic time . All predictions for those times are supposed to be NA.") #modif
-    if(0 %in% newtimes){
-      newtimes <- sort(newtimes[-(newtimes == 0)])
-    }
-    # usable_times <- newtimes[newtimes <= max(time[object$y[,2] == 1])]
-    # out_time <- newtimes[newtimes > max(time[object$y[,2] == 1])]
+    newtimes <- sort(newtimes[newtimes != 0])
     usable_times <- newtimes[newtimes <= pro.time]
     out_time <- newtimes[newtimes > pro.time]
     idx <- findInterval(usable_times, intervals, left.open = TRUE)
@@ -83,12 +76,11 @@ predict.sPLANN <- function(object, newdata = NULL, newtimes = NULL, ...)
       more_times <- data.frame(matrix(NA, nrow = dim(predictions)[1], ncol = length(out_time) ))
       predictions <- unname(cbind(rep(1, dim(predictions)[1]), predictions, more_times))
       more_names <- c()
-      if(length(out_time) > 0){
-        for (i in length(out_time)){
+      for (i in 1:length(out_time)){
           
-          more_names <- c(more_names, paste0(as.character(out_time[i]), " > ", round(max(time[object$y[,2] == 1]), digits = 2) ))
-        }
+          more_names <- c(more_names, paste0(as.character(out_time[i]), " > ", round(pro.time, digits = 2) ))
       }
+      
       colnames(predictions) = c("0",col_names, more_names)
     }else{
       
